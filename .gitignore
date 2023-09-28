@@ -165,4 +165,3 @@ cython_debug/
 
 **/*api.key
 **/logs/
-.private_key*
