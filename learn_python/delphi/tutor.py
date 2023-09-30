@@ -38,7 +38,9 @@ from learn_python.utils import (
     ROOT_DIR,
     strip_colors,
     lp_logger,
-    DateTimeEncoder
+    DateTimeEncoder,
+    configure_logging,
+    formatter
 )
 from learn_python import main
 import shutil
@@ -153,7 +155,6 @@ Hi, I'm **Delphi**! \U0001F44B
         self.file_handler = GzipFileHandler(str(LOG_DIR / f'delphi_{self.engagement_id}.log'))
 
         # setup delphi logging to a unique file for each engagement
-        formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelno)s]%(levelname)s - %(message)s')
         self.file_handler.setFormatter(formatter)
         self.logger.addHandler(self.file_handler)
         self.logger.setLevel(logging.DEBUG)
@@ -880,21 +881,26 @@ def delphi(
     _explicitly_invoked = True
     from learn_python.register import do_report, lock_reporting
     lock_reporting()
-    with delphi_context():
-        try:
-            if submit_logs:
-                submitted, errors = Tutor.submit_logs()
-                if submitted:
-                    print(colored(f'Submitted {submitted} logs to the lesson server.', 'green'))
-                if errors:
-                    print(colored(f'Encountered {errors} errors submitting logs to the lesson server.', 'red'))
-                return
-            if clean_logs:
-                if LOG_DIR.is_dir():
-                    shutil.rmtree(LOG_DIR)
-                return
-            tutor(llm).init(task).submit_logs()
-        except ConfigurationError as err:
-            print(colored(str(err), 'red'))
-    lock_reporting(False)
-    do_report()
+    configure_logging()
+    logging.getLogger('testing').info('[START] tutor')
+    try:
+        with delphi_context():
+            try:
+                if submit_logs:
+                    submitted, errors = Tutor.submit_logs()
+                    if submitted:
+                        print(colored(f'Submitted {submitted} logs to the lesson server.', 'green'))
+                    if errors:
+                        print(colored(f'Encountered {errors} errors submitting logs to the lesson server.', 'red'))
+                    return
+                if clean_logs:
+                    if LOG_DIR.is_dir():
+                        shutil.rmtree(LOG_DIR)
+                    return
+                tutor(llm).init(task).submit_logs()
+            except ConfigurationError as err:
+                print(colored(str(err), 'red'))
+    finally:
+        logging.getLogger('testing').info('[STOP] tutor')
+        lock_reporting(False)
+        do_report()

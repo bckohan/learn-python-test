@@ -233,7 +233,7 @@ class Config(Singleton):
             self.write()
             if 'secret' in tutor_auth:
                 self.tutor.backend_class.write_key(tutor_auth['secret'])
-                typer.echo('Delphi has been authorized!')
+                typer.echo(colored('Delphi has been authorized!', 'green'))
                 return True
         return False
     
@@ -291,13 +291,14 @@ class Config(Singleton):
                         encryption_algorithm=serialization.NoEncryption()
                     )
                 )
+
+            git_push_file(PUBLIC_KEY_FILE)
+
         if not self.keys_valid():
             raise RuntimeError(
                 'Unable to generate functioning key/value pair.'
             )
         
-        git_push_file(PUBLIC_KEY_FILE)
-
         try:
             client.register()
             lp_logger.info('Registered with course.')
@@ -327,12 +328,6 @@ class Config(Singleton):
 
 @main(catch=True)
 def register(
-    force: bool = typer.Option(
-        False,
-        '-f',
-        '--force',
-        help='Re-register with the course.'
-    ),
     reset: bool = typer.Option(
         False,
         '--reset',
@@ -342,9 +337,7 @@ def register(
         )
     )
 ):
-    if Config().is_registered() and not force:
-        Config().try_authorize_tutor()
-    elif Config().register(reset=reset):
+    if Config().register(reset=reset):
         typer.echo(colored('Your course is now registered!', 'green'))
         if Config().enrollment is not None:
             typer.echo(colored(f'You have been enrolled in course: {Config().enrollment}', 'green'))
@@ -352,7 +345,7 @@ def register(
         typer.echo(
             colored('Course registration failed. If this is in error, contact your instructor.', 'red')
         )
-    report()
+    do_report()
 
 
 # guard against excessive reporting
